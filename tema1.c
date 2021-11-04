@@ -33,8 +33,8 @@ Dir* allocDir(char* name, struct Dir* parent, struct File* head_children_files,
 
 	strcpy(thisDir->name, name);
 	thisDir->parent = parent;
-	thisDir->head_children_files = head_children_files;
 	thisDir->head_children_dirs = head_children_dirs;
+	thisDir->head_children_files = head_children_files;
 	thisDir->next = next;
 
 	return thisDir;
@@ -58,55 +58,59 @@ File* allocFile(char* name, struct Dir* parent, struct File* next){
 void touch (Dir* parent, char* name) {
 
 	File* thisFile = allocFile(name, parent, NULL);
-	
-	if (parent->head_children_files == NULL)
+
+
+	if (parent->head_children_files == NULL){
 		parent->head_children_files = thisFile;
-	else{
-
-		File* toIterate = parent->head_children_files;
-		
-		while(1){
-
-			if (strcmp(toIterate->name, name) == 0){
-
-				puts("File already exists");
-				return;
-			}
-
-			if (toIterate->next == NULL)
-				break;
-			toIterate = toIterate->next;
-		}
-		
-		toIterate->next = thisFile;
+		return;
 	}
+
+	File* toIterate = parent->head_children_files;
+		
+	while(1){
+
+		if (strcmp(toIterate->name, name) == 0){
+
+			puts("File already exists");
+			return;
+		}
+
+		if (toIterate->next == NULL)
+			break;
+		toIterate = toIterate->next;
+	}
+		
+	toIterate->next = thisFile;
+	
 }
 
 void mkdir (Dir* parent, char* name) {
 
 	Dir* thisDir = allocDir(name, parent, NULL, NULL, NULL);
 	
-	if (parent->head_children_dirs == NULL)
+	if (parent->head_children_dirs == NULL){
+
 		parent->head_children_dirs = thisDir;
-	else{
+		return;
+	}
 
-		Dir* toIterate = parent->head_children_dirs;
+	Dir* toIterate = parent->head_children_dirs;
 
-		while (1){
+	while (1){
 
-			if (strcmp(toIterate->name, name) == 0){
+		if (strcmp(toIterate->name, name) == 0){
 
-				puts("Directory already exists");
-				return;
-			}
-
-			if(toIterate->next == NULL)
-				break;
-			toIterate = toIterate->next;
+			puts("Directory already exists");
+			return;
 		}
 
-		toIterate->next = thisDir;
+		if (toIterate->next == NULL)
+			break;
+		toIterate = toIterate->next;
 	}
+
+	toIterate->next = thisDir;
+	
 }
 
 void ls (Dir* parent) {
@@ -139,11 +143,144 @@ void ls (Dir* parent) {
 
 }
 
-void rm (Dir* parent, char* name) {}
+void rm (Dir* parent, char* name) {
 
-void rmdir (Dir* parent, char* name) {}
+	if (parent->head_children_files == NULL){
 
-void cd(Dir** target, char *name) {}
+		puts("Could not find the file");
+		return;
+	}
+
+	File* toIterate = parent->head_children_files;
+	File* toIteratePrev = parent->head_children_files;
+	
+	while (1){
+
+		if (strcmp(toIterate->name, name) == 0){
+
+			if (toIteratePrev == toIterate){ //cazul in care avem primul fisier din lista
+
+				if (toIterate->next == NULL)
+					parent->head_children_files = NULL;
+				else
+					parent->head_children_files = toIterate->next;
+
+				return;
+			}
+
+			if (toIterate->next == NULL){
+
+				toIteratePrev->next = NULL;
+				return;
+			}
+			else {
+
+				toIteratePrev->next = toIterate->next;
+				//+dealoc;
+				return;
+			}
+			return; //just 2 be safe :D
+		}
+
+		if (toIterate->next == NULL){
+
+			puts("Could not find the file");
+			return;
+		}
+
+		toIteratePrev = toIterate;
+		toIterate = toIterate->next;
+	}	
+
+}
+
+void rmdir (Dir* parent, char* name) {
+
+	if (parent->head_children_dirs == NULL){
+
+		puts("Could not find the dir");
+		return;
+	}
+
+	Dir* toIterate = parent->head_children_dirs;
+	Dir* toIteratePrev = parent->head_children_dirs;
+	
+	while (1){
+
+		if (strcmp(toIterate->name, name) == 0){
+
+			if (toIteratePrev == toIterate){ //cazul in care avem primul fisier din lista
+
+				if (toIterate->next == NULL)
+					parent->head_children_dirs = NULL;
+				else
+					parent->head_children_dirs = toIterate->next;
+
+				return;
+			}
+
+			if (toIterate->next == NULL){
+
+				toIteratePrev->next = NULL;
+				return;
+			}
+			else {
+
+				toIteratePrev->next = toIterate->next;
+				//+dealoc;
+				return;
+			}
+			return; //just 2 be safe :D
+		}
+
+		if (toIterate->next == NULL){
+
+			puts("Could not find the dir");
+			return;
+		}
+
+		toIteratePrev = toIterate;
+		toIterate = toIterate->next;
+	}
+
+}
+
+void cd(Dir** target, char *name) {
+
+	Dir* toIterateDirs = (*target)->head_children_dirs;
+	
+	if (strcmp(name, "..") == 0){
+
+		if ((*target)->parent == NULL)
+			return;
+
+		*target = (*target)->parent;
+		return;
+	}
+
+	if (toIterateDirs == NULL){
+
+		puts("No directories found!");
+		return;
+	}
+
+	while (1){
+
+		if (strcmp(toIterateDirs->name, name) == 0){
+
+			*target = toIterateDirs;
+			return;
+		}
+
+		if (toIterateDirs->next == NULL){
+
+			puts("No directories found!");
+			return;
+		}
+
+		toIterateDirs = toIterateDirs->next;
+	}
+}
 
 char *pwd (Dir* target) {}
 
@@ -161,7 +298,6 @@ int main () {
 
 	do
 	{	
-		puts("ASTA TRB PUSA NEAPARAT");
 		char* token = malloc(MAX_INPUT_LINE_SIZE);
 
 		fgets(input, MAX_INPUT_LINE_SIZE, stdin);
@@ -172,7 +308,7 @@ int main () {
 			
 			token = strtok(input, " ");
 			token = strtok(NULL, " ");
-			
+
 			touch(currentDir, token);
 		}
 		
@@ -185,9 +321,33 @@ int main () {
 			mkdir(currentDir, token);
 		}
 
-		if (strstr(input, "ls") != NULL){
+		if (strstr(input, "ls") != NULL)
 			ls(currentDir);
+
+		if (strstr(input, "rm") != NULL){
+
+			if (strstr(input, "rmdir") != NULL){ //confusion
+			
+				token = strtok(input, " ");
+				token = strtok(NULL, " ");
+				
+				rmdir(currentDir, token);	
+			}
+			else {
+				token = strtok(input, " ");
+				token = strtok(NULL, " ");
+
+				rm(currentDir, token);
+			}
 		}
+
+		if (strstr(input, "cd") != NULL){
+
+			token = strtok(input, " ");
+			token = strtok(NULL, " ");
+			cd(&currentDir, token);
+		}
+
 
 
 		if (strcmp(input, "stop") == 0)
