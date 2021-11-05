@@ -282,11 +282,93 @@ void cd(Dir** target, char *name) {
 	}
 }
 
-char *pwd (Dir* target) {}
+char *pwd (Dir* target) {
+
+	Dir* toIterateDirs = target;
+	char* toPrint = malloc(MAX_INPUT_LINE_SIZE);
+	int level = 0;
+
+	while(1){
+
+		if (strcmp(toIterateDirs->name, "home") == 0)
+			break;
+
+		level++;
+		toIterateDirs = toIterateDirs->parent;
+	}
+
+	strcpy(toPrint, "/home"); //stiu sigur ca sunt la home,
+							  //fac asa bcs char* stuff;
+	toIterateDirs = toIterateDirs->head_children_dirs;
+
+	for (int i = 0; i < level; i++){
+
+		strcat(toPrint, "/");
+		strcat(toPrint, toIterateDirs->name);
+		toIterateDirs = toIterateDirs->head_children_dirs;
+	}
+	
+	return toPrint;
+}
 
 void stop (Dir* target) {}
 
-void tree (Dir* target, int level) {}
+void printTreeFiles (File* target, int level){
+
+	char* spaces = malloc(100);
+
+	for (int i = 0; i < level * 4; i++){
+
+		if (spaces == NULL)
+			strcpy(spaces, " ");
+		else
+			strcat(spaces, " ");
+	}
+
+	strcat(spaces, target->name);
+	puts(spaces);
+
+	if (target->next != NULL)
+		printTreeFiles(target->next, level);
+}
+
+void tree (Dir* target, int level) {
+
+
+	char* spaces = malloc(100);
+	int level1 = level;
+
+	for (int i = 0; i < level1 * 4; i++){
+
+		if (spaces == NULL)
+			strcpy(spaces, " ");
+		else
+			strcat(spaces, " ");
+	}
+
+	strcat(spaces, target->name);
+	puts(spaces);
+
+	if (target->head_children_dirs != NULL){
+
+		int level2 = level1;
+		tree(target->head_children_dirs, ++level2);
+	} 
+
+
+	if (target->head_children_files != NULL){
+
+		int level2 = level1;
+		printTreeFiles(target->head_children_files, ++level2);
+	}
+
+	if (target->next != NULL)
+		tree(target->next, level1);
+
+
+	if (strcmp(target->parent->name, "home")  == 0 && target->parent->head_children_files != NULL) //o atrocitate
+		printTreeFiles(target->parent->head_children_files, level1);
+}
 
 void mv(Dir* parent, char *oldname, char *newname) {}
 
@@ -348,7 +430,17 @@ int main () {
 			cd(&currentDir, token);
 		}
 
+		if (strstr(input, "tree") != NULL){
 
+			if (currentDir->head_children_dirs != NULL)
+				tree(currentDir->head_children_dirs, 0);
+		}
+
+		if (strstr(input, "pwd") != NULL){
+
+			char* toPrint = pwd(currentDir);
+			puts(toPrint);
+		}
 
 		if (strcmp(input, "stop") == 0)
 			break;
