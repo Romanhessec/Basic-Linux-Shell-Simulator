@@ -59,8 +59,8 @@ void touch (Dir* parent, char* name) {
 
 	File* thisFile = allocFile(name, parent, NULL);
 
-
 	if (parent->head_children_files == NULL){
+		
 		parent->head_children_files = thisFile;
 		return;
 	}
@@ -79,7 +79,28 @@ void touch (Dir* parent, char* name) {
 			break;
 		toIterate = toIterate->next;
 	}
+	
+	if (parent->head_children_dirs == NULL){
 		
+		toIterate->next = thisFile;
+		return;
+	}
+
+	Dir* toIterateDirs = parent->head_children_dirs;
+
+	while(1){
+
+		if (strcmp(toIterateDirs->name, name) == 0){
+
+			puts("File already exists");
+			return;
+		}
+
+		if (toIterateDirs->next == NULL)
+			break;
+		toIterateDirs = toIterateDirs->next;
+	}
+
 	toIterate->next = thisFile;
 	
 }
@@ -107,6 +128,28 @@ void mkdir (Dir* parent, char* name) {
 		if (toIterate->next == NULL)
 			break;
 		toIterate = toIterate->next;
+	}
+	
+	if (parent->head_children_files == NULL){
+
+		toIterate->next = thisDir;
+		return;
+	}
+
+	File* toIterateFiles = parent->head_children_files;
+
+	while (1){
+
+		if (strcmp(toIterateFiles->name, name) == 0){
+
+			puts("Directory already exists");
+			return;
+		}
+
+		if (toIterateFiles->next == NULL)
+			break;
+
+		toIterateFiles = toIterateFiles->next;
 	}
 
 	toIterate->next = thisDir;
@@ -311,7 +354,10 @@ char *pwd (Dir* target) {
 	return toPrint;
 }
 
-void stop (Dir* target) {}
+void stop (Dir* target) {
+
+	//delacoare memorie
+}
 
 void printTreeFiles (File* target, int level){
 
@@ -349,28 +395,147 @@ void tree (Dir* target, int level) {
 	strcat(spaces, target->name);
 	puts(spaces);
 
-	if (target->head_children_dirs != NULL){
+	if (target->head_children_dirs != NULL){ //if1
 
 		int level2 = level1;
 		tree(target->head_children_dirs, ++level2);
 	} 
 
-
-	if (target->head_children_files != NULL){
+	if (target->head_children_files != NULL){ //if2
 
 		int level2 = level1;
 		printTreeFiles(target->head_children_files, ++level2);
 	}
 
-	if (target->next != NULL)
+	if (target->next != NULL) //if3
 		tree(target->next, level1);
 
 
-	if (strcmp(target->parent->name, "home")  == 0 && target->parent->head_children_files != NULL) //o atrocitate
-		printTreeFiles(target->parent->head_children_files, level1);
+	if (strcmp(target->parent->name, "home")  == 0 && target->parent->head_children_files != NULL) //if4, o atrocitate
+		printTreeFiles(target->parent->head_children_files, level1);							   //FIX !! - L.E: I DIDNT :D
 }
 
-void mv(Dir* parent, char *oldname, char *newname) {}
+int checkIfNewnameExists (Dir* parent, char* name){
+
+	Dir* toIterateDirs = parent->head_children_dirs;
+	File* toIterateFiles = parent->head_children_files;
+
+	while(1){
+
+		if (toIterateDirs == NULL)
+			break;
+
+		if (strcmp(toIterateDirs->name, name) == 0)
+			return 0; //newname already exists
+
+		toIterateDirs = toIterateDirs->next;
+	}	
+
+	while(1){
+
+		if (toIterateFiles == NULL)
+			break;
+
+		if (strcmp(toIterateFiles->name, name) == 0)
+			return 0; //newname already exists
+
+		toIterateFiles = toIterateFiles->next;
+		
+	}
+
+	return 1; //newname doesn't exists
+}
+
+void mv(Dir* parent, char *oldname, char *newname) {
+
+	Dir* toIterateDirs = parent->head_children_dirs;
+	File* toIterateFiles = parent->head_children_files;
+
+
+	while(1){
+
+		if (toIterateDirs == NULL)
+			break;
+		
+		if (strcmp(toIterateDirs->name, oldname) == 0){ //oldname exists - yey!;
+
+			if (checkIfNewnameExists(parent, newname) == 0){
+
+				puts("File/Director already exists");
+				return;
+			}
+			//if we get here, all of the conditions are ok and we can do the mv;
+			Dir* toMoveDir = allocDir(newname, parent, toIterateDirs->head_children_files, 
+			 toIterateDirs->head_children_dirs, NULL);
+			rmdir(parent, oldname);
+			Dir* toIterateNewDirs = parent->head_children_dirs;
+			if (toIterateNewDirs == NULL){
+
+				parent->head_children_dirs = toMoveDir;
+				return;
+			}
+
+			while(1){
+
+				if (toIterateNewDirs->next == NULL){
+					
+					toIterateNewDirs->next = toMoveDir;
+					return;
+				}
+
+				toIterateNewDirs = toIterateNewDirs->next;	
+			}
+
+			return;
+		}
+
+		toIterateDirs = toIterateDirs->next;
+	}
+
+	while(1){
+
+		if (toIterateFiles == NULL)
+			break;
+		
+		if (strcmp(toIterateFiles->name, oldname) == 0){ //oldname exists - yey!;
+
+			if (checkIfNewnameExists(parent, newname) == 0){
+
+				puts("File/Director already exists");
+				return;
+			}
+
+			//if we get here, all of the conditions are ok and we can do the mv;
+			File* toMoveFile = allocFile(newname, parent, NULL);
+			rm(parent, oldname);
+			File* toIterateNewFiles = parent->head_children_files;
+			if (toIterateNewFiles == NULL){
+
+				parent->head_children_files = toMoveFile;
+				return;
+			}
+
+			while(1){
+
+				if (toIterateNewFiles->next == NULL){
+					
+					toIterateNewFiles->next = toMoveFile;
+					return;
+				}
+
+				toIterateNewFiles = toIterateNewFiles->next;	
+			}
+
+			return;
+		}
+
+		toIterateFiles = toIterateFiles->next;
+	}
+	// if we're here, oldname doesnt exist;
+	puts("File/Director not found");
+	return;
+
+}
 
 int main () {
 
@@ -427,6 +592,7 @@ int main () {
 
 			token = strtok(input, " ");
 			token = strtok(NULL, " ");
+			
 			cd(&currentDir, token);
 		}
 
@@ -442,8 +608,22 @@ int main () {
 			puts(toPrint);
 		}
 
-		if (strcmp(input, "stop") == 0)
+		if (strstr(input, "mv") != NULL){
+
+			token = strtok(input, " ");
+			token = strtok(NULL, " ");
+			char* oldname = token;
+			token = strtok(NULL, " ");
+			char* newname = token;
+			
+			mv(currentDir, oldname, newname);
+		}
+
+		if (strcmp(input, "stop") == 0){
+
+			stop(currentDir);
 			break;
+		}
 
 	} while (1);
 		
